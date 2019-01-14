@@ -1,0 +1,139 @@
+\section{Background and Motivation}\label{sec:backandmo}
+% Data quantization is a straightforward and effective method for DNN compression to reduce memory access and avoid floating point operations for the deployment of DNNs on hardware~\cite{han2015deep,FPGAAccsurvey}. 
+% Our motivation is based on the shortage of the existing quantization methods and focuses on providing a more accurate theoretical support to improve the data quantization loss, hence, improve the trained accuracy of DNN models.
+In this section, we first introduce the premise data distribution assumption of DNN designs. Then we conclude the existing data quantization methods. We finally discuss our motivation based on the data distribution assumption and the shortage of the existing solutions.
+
+\subsection{Data distribution analysis}
+The assumption of normal data distribution is widely used in DNN related applications.
+% Because of the derivation of the L2 regularization term is based on a prior knowledge that the network weights are normally distributed~\citep{nasrabadi2007pattern}.
+% Most of the DNN studies explicitly or implicitly assume that the weight or feature data are normally distributed.
+For a DNN model, let $X$ be the input features, $y$ be the classification result, and $\omega$ be the weights of the model.
+According to the Bayesian posterior probability~\citep{nasrabadi2007pattern,robert2014machine}, the following formula can be obtained:
+    \begin{equation}
+       p(\omega|X,y) \propto p(X,y|\omega)p(\omega)
+    \end{equation}
+%\textcolor{red}{(Cong: need explanation. what is function $p()$?)}
+%\textcolor{blue}{(Cheng: 
+Here $p(\omega|X,y)$ is the maximum posterior probability of deriving $\omega$ from data $\{X,y\}$, $p(X,y|\omega)$ is the likelihood function, and $p(\omega)$ is the prior probability of $\omega$.
+Assume $p(\omega_i) = \mathcal{N}(\omega_i|\mu,\sigma^2)$,
+the maximum log likelihood of the above formula can be written:
+
+\vspace{-2mm}
+\begin{equation}
+        l(\omega)=\log(p(X,y|\omega))-\lambda\sum(\omega_i)^2,\,(\mu=0,\sigma=\sqrt{\frac{1}{\lambda}})
+    \end{equation}
+
+where $\lambda\sum(\omega_i)^2$ is the L2 regularization term.
+These proof that all models based on L2 regular terms training approve the basic premise assumption, which means the weights of the models are normally distributed~\citep{nasrabadi2007pattern,robert2014machine}.
+All of the models trained with Caffe framework~\citep{jia2014caffe} are using the L2 regular terms by default~\citep{lecun1998gradient,krizhevsky2009learning,simonyan2014vgg}.
+% In batch-normalization \citep{ioffe2015batch} and some data pre-processing algorithms (PCA/ZCA), they also assume the feature data satisfy with the normal distribution.
+
+\subsection{Existing quantization methods}
+Existing data quantization methods can be divided into several categories based on the different quantization goals:
+1) Binary quantization and 2) Ternary quantization and 3) Fixed-point quantization.
+\subsubsection{Binary quantization}
+Binary quantization \citep{hubara2016binarized,zhou2016dorefa}, which use a 1 bit binary data to represent the original floating point data.
+The classic binary quantization is implemented as \citep{zhou2016dorefa}:
+\begin{equation}
+    w_q=E(|w_f|)\times sign(w_f)
+\end{equation}
+Here $E(|w_f|)$ is the mean of absolute value of full precision weights $w_f$ as the scaling factor, and $sign(w_f)=2\mathbb{I}_{w_f\ge 0}-1$, which is either -1 or 1.
+Binary quantization is efficient and could achieve up to 32$\times$ compression ratio \citep{hubara2016binarized}. Moreover, binary quantization can completely avoid time-consuming multiplication and convert it into binary operations \citep{rastegari2016xnor}, which dramatically accelerates the computing.
+
+However, current binary quantization methods set scaling factor based on empirical guidance.
+The single bit data also cause a high loss for the data representation, easily lead to a high model accuracy loss. 
+More importantly, directly binarizing the original DNN model makes is hard to converge during model training and always requires model redesign\citep{ghasemzadeh2018rebnet}.
+
+\subsubsection{Ternary quantization}
+Inspired by binary quantization, ternary quantization use three values in 2 bits ($\{-1,0,1\}$) and one or two corresponding scaling factors to represent a set of data \citep{TWNs,zhu2016trained, zhu2016trained,TWNs,alemdar2017ternary,jin2018sparse}. 
+Ternary quantization is usually implemented as the following method~\citep{TWNs}:
+\begin{align}
+    w_q&=
+    \begin{cases}
+    \alpha&:\,w_f>\Delta\\
+    0&:\,|w_f|\le \Delta\\
+    -\alpha&:\, w_f<-\Delta
+    \end{cases}\\
+\alpha &=\underset{i\in\{i| |w_f(i)|>\Delta\}}{E}(|w_f(i)|)
+    ~\&~ \Delta = 0.7E(|w_f|) \nonumber
+\end{align}
+where $\alpha$ is the scaling factor and $\Delta$ is the threshold for quantization. 
+%\begin{align}
+%    \Delta &= 0.7E(|w_f|)\nonumber\\
+%    \alpha &=\underset{i\in\{i| |w_f(i)|>\Delta\}}{E}(|w_f(i)|)
+%\end{align}
+
+Moreover, the method proposed in \citep{TWNs} solve the optimization problem of minimizing L2 distance between $w_f$ and $w_q$, which implicitly includes the assumptions that the distribution of $w_f$ satisfies normal distribution.
+Since ternary uses 2 bits for data representation, its data loss and accuracy degradation is smaller than binary quantization but remains high.
+% Besides, ternary usually uses 2 bits to represent three values, and the bit width resources are not fully utilized.
+\subsubsection{Fixed-point quantization}
+\label{sec:fixed-point}
+Fixed-point quantization is the most commonly used quantization method due to it is simplicity~\citep{zhou2016dorefa,gysel2016hardware,lin2016fixed}.
+% , which is achieved by moving the decimal point by shifting operation on a hardware.
+There are various implementations for fixed-point quantization~\citep{gysel2016hardware, zhou2016dorefa}. 
+Overall, it reserves the integer and fractional part of a floating point data within a limited bit width.
+% The work in \citep{gysel2016hardware} reserves the integer and fractional part within a limited bit width to adapt to the representation of the hardware, and adjusts the decimal point position $p$ by setting the length of the two parts.
+% The work \citep{zhou2016dorefa} first shifts the decimal point by $p$ bits, then preserves the integer part in front of the point and discards the decimal part after the point.
+For the floating array data $w_f$ to be quantized to $w_q$ with $k$-bit width,
+the implementation for fixed-point quantization is as follows:
+ \begin{equation}
+ \label{fixed-point-quantization}
+     \begin{cases}
+         p=\lfloor \log_2(max(|w_f|)) \rfloor-(k-2)\\
+         w_q=Round(\frac{w_f}{2^p})
+     \end{cases}
+ \end{equation}
+
+Here $p$ is the steps that need to be shifted, which is calculated based on the limited $k$-bit width,  to ensure that the quantized data does not overflow within $k$-bit width. $w_f$ is an array, and $max()$ is the function for computing the maximum value of the array. Fixed-point quantization will give priority to the value in high bit, so our reserved bits will start with the highest bit of the absolute maximum value of the array, and we calculate p according to this logic. Here is $(k-2)$ instead of $(k-1)$ since the sign bit is taken into consideration.
+
+Fixed-point quantization always gives priority to retain the data with larger absolute value and losing the data with smaller absolute value.
+% Its loss function can be expressed as:
+% \begin{equation}
+    % \label{eqn:loss_of_fixed}
+    % J=\lVert w_q-w_f\rVert_2^M
+% \end{equation}
+% Here $M$ is a great integer and represents for paying much attentions to the high bits loss and less for low bits. But it do not work when quantizing to low bit widths in most models. Based on our analysis, the weights or activations of many current models are approximately obeying a normal distribution. On one hand, the loss function does not conform to the normal distribution of most models' weights or activations. On the other hand, in the normal distribution, the great value part only occupies a small proportion. When the quantized bit width is low, the strategy of retaining the high bits will cause most of the valid values, nearing the mean, to be discarded, resulting in great data loss. $w_q$ and $w_f$ are the value after quantization and the full precision value. 
+%\textcolor{red}{(Cong: also, a little explanation would be nice here. What does this $\lVert xx \lVert_2^ \infty $ mean?)}
+%\textcolor{blue}{(Cheng: 
+%Here $M$ is a great integer and this formula can be explained from two aspects as follows: Firstly, $J$ pay all attention to the large bias, that is, the discarding of high bit values will cause the much more quantization loss than the discarding of low bit values. Secondly, from the perspective of discrete point fitting \citep{nasrabadi2007pattern} in machine learning, this formula always focuses on the outliers, ie discarding the high bit will create a distinct outlier, rather than the overall distribution of the sample. From this perspective, fixed-point quantization is not good at fitting.)}
+
+% The fixed-point quantization ignores the fact that data $w_f$ follow the normal distribution in \eqnref{eqn:loss_of_fixed}. In addition, when $k$ is small ($k<8$), the loss of fixed-point quantization will be large since it discards most of the valid data. In general, fixed-point is hard to be applied in an ultra-low bit width quantization in practice.
+
+\subsection{Motivation}
+%1、问题：权值量化过程中的数据损失和位宽的权衡
+% Data quantification is a commonly used method of network compression. It tried to produce a model with a low bit width whose output is similar to the full precision one's output. 
+% The low bit width directly affects some aspects of the DNN model, such as low memory footprint, low energy consumption, and high computing speed, but often also leads to degradation in accuracy. The challenge is to achieve a trade-off between data loss and bitwidth.
+%2、当前一些方法的weakness：
+% The current methods have some difficulties in achieving the trade-offs. 
+%   binary/ternary数据损失过大，而且在分析和改进方面存在一些困难
+%The binary/ternary \citep{hubara2016binarized,TWNs} quantization has large accuracy degradation and are inflexible, which is hard to trade off between accuracy and bit width.
+The previous quantization methods are good, however, they are either require manually designed parameters or based on emperical and experimental guidance and are lack of theoretical analysis, which are hard to achieve good trade-offs. 
+For example, The Bianry \citep{hubara2016binarized} / Ternary \citep{TWNs} are classic works, but they has large accuracy degradation and are hard to quantitatively control the trade off between accuracy and bit width.
+The Fixed-point quantization \citep{gysel2016hardware,zhou2016dorefa} are difficult to achieve a trade-off between data loss and bit width because of its poor performance at low bit widths.
+
+The issues above motivate us to take the \textbf{data distribution} into consideration, evaluate our data loss by establishing a credible data \textbf{loss function}, then find an optimal solution to achieve the lowest loss for the \textbf{quantization}.
+A solution that solves the optimal data quantization at all different bit widths to achieve a trade-off between bit width and data loss is proposed, named $\mu$L2Q.
+% In our experimental part, we demonstrate that $\mu$L2Q achieves better trade-offs between bit width and data loss compared to the state-of-the-art methods in normal distribution data, and also achieves better trade off between model accuracy and weight bitwidth in model training. 
+%need to say
+%\textcolor{red}{(Cong: this section for motivation is too verbose (LOL sorry for being mean). Need to greatly delete some paragraphs. Also it is not well organized... really need to work again on this section. I feel we just need to explain several points: 1) previous works do not consider data distribution; 2) previous works do not consider quantitative analysis for quantization loss, so they cannot control how much the precision loss is, i.e., trade-off between performance and accuracy. Will come back later for this section.}
+%\textcolor{blue}{(Cheng: sorry for this, I just remove the redundancy.)}
+
+%We realize that making assumptions about raw data is critical. First, it limits the problem to a certain scope, rather than trying to solve all problems in one way. Second, it makes our approach analyzable, and we can try to solve problems using math or machine learning tools. The quantization loss is a more direct metrics than the output accuracy of the model, which directly shows the difference between the data before and after the quantization. Based on the assumption of data distribution, we derive the analyzable  quantization loss function. The flexibility of quantification is the key to achieving accuracy and bit width trade-offs. Based on analyzable quantization loss function, we design the method that the quantization loss is guaranteed to be optimal in all bit widths, and realize the flexible quantization. 
+
+%Most of the previous works on quantification was based on empirical guidance or experimental verification. In addition, binary and ternary are concentrated on ultra-low bit width quantization, but there is a large quantization loss compared with the original data. Meanwhile, the fixed-point quantization can only be applied to multi-bits quantization. For example, between these bit widths, the 4-bit width is not available for fixed-point quantization (the loss of fixed-point quantization with 4-bit width is large). Our approach is based on a theoretical analysis of the assumption and maintains low loss over all bit widths.
+
+%Quantization is a hot issue of network compression, which can reduce the size of model storage, while at the same time designing for fast and low-power computing. 
+
+%1、各种量化方法难以直接比较，基于模型输出的比较不可信（在该论文中表示量化输出甚至比全精度的高）
+%The current quantization methods are often based on empirical guidance, but lack of assumptions and theoretical analysis. Moreover, it is difficult to directly compare existing quantization methods.  Firstly, the various quantization methods focus on different points, some focus on speed, while others focus on the trade-off between accuracy loss and compression ratio. Secondly, since the complexity of the deep models, there are too many reasons for its accuracy. For deep networks of the same structure, using different hyper-parameters will give completely different results. Even if the same external condition is used, the results of two training process may be different. Therefore, there is no convincing based on the comparison of model accuracy. Especially for large deep networks with redundancy, it is difficult to come up with convincing results, because the gaps of different methods are often small, and even some models have higher accuracy after compression than the full precision model \citep{zhu2016trained}.
+
+%2、没有一种可以适应不同位宽的量化方法，以不同深度（冗余）的网络的量化
+%Moreover, the existing quantization methods do not propose functions that smoothly adapt to different network models. Binary and ternary quantization focus on high compression ratio and speed, but with large loss. The fixed-point quantization is very simple and fast, based on which some tradeoffs between precision loss and compression ratio can be achieved, but it is difficult to achieve high compression ratio. Experiments show that under our assumptions, the loss of fixed-point quantization with 4 bit width has been larger than the loss of ternary quantification (only 2 bit).
+
+%3、存在一些补救措施，但是治标不治本（这两篇文章都是残差二值化相关的）
+%There are also some remedies. For example, the residual binary quantization \citep{ghasemzadeh2018rebnet,li2017performance} is used to reduce loss of binary quantization, but its essence is to superimpose multiple binary quantization processes to reduce the loss, while increasing complexity and reducing the compression ratio.
+
+%4、我们所做的一些工作
+% In this paper, firstly, we make a reasonable assumption about the premise of network compression. Secondly, inspired by the previous works, we proposed our quantization method called $\mu$L2Q, which can flexibly adapt to various network models with different bit width. Thirdly, based on our initial assumption, we give the data loss function, which be used in our experiments as the direct evaluation measure.
+%fully analyzing the ULQ parameter selection and gave an approximate optimal solution. Finally, it is verified by experiments that ULQ can achieve the lowest loss in all bit widths compared to the current quantization methods, that is, the optimal trade-off of precision loss and bit width can be found.
+%做环境假设，即正态分布的假设

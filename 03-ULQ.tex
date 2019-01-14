@@ -1,0 +1,91 @@
+\section{Proposed Method}\label{sec:ulq}
+
+In order to quantize the weights with an ultra-low loss, we design the $\mu$L2Q method based on the assumption of normal distribution for the input data. 
+We use a loss function to evaluate our proposed $\mu$L2Q method, are The low loss training quantization is achieved by illustrating the low loss data quantization for the co-efficients during the model training. 
+
+\subsection{Loss function design}
+The quantized data is represented as $w_q$, and the process of quantization can be simply expressed as follows:
+\begin{equation}
+    w_q=Quantize(w_f)
+\end{equation}
+
+The $Quantize()$ is a quantization function, which maps $w_f$ to $w_q$, where $w_q$ are generally represented with integer. 
+Based on the discussion in Section~\ref{sec:backandmo}, $w_f$ obeys normal distribution, so the quantized loss function of it could be simplified as follows:
+
+\vspace{-2mm}
+\begin{equation}
+\label{eqn:loss_func}
+    J=\lVert w_f-w_q \rVert_2^2
+\end{equation}
+
+where $J$ is the distance between $w_f$ and $w_q$, which is to be minimized.
+%\textcolor{red}{(Cong: here $w_f$ and $w_q$ refers to all input/output data, right? Or just one weight? If it is for a large bunch of data, I feel the computation of $J$ needs to be better defined. For example given 1M weights, how to compute $J$ over 1M data? Is it summed up or averaged?)}
+%\textcolor{blue}{(Cheng: $w_f$ is an array, it can be the weights of one layer in the network models, or the activations or outputs of one layer. Here, we abstract them into an array $w_f$ that satisfies a normal distribution.)}
+Considering the complexity and uncertainty based on the output of DNN models, instead of measuring the final DNN output accuracy, we use $J$ as the direct evaluation metric to evaluate the quantization loss.
+
+\subsection{Ultra Low Loss Quantization ($\mu$L2Q)}
+
+$w_q$ always has a loss to represent $w_f$ in a limited bit width.
+Binary and ternary quantization methods use additional scaling factor to reduce the quantization loss. The position parameter (i.e. $2^k$) for fixed-point quantization can also be regarded as a scaling factor~\cite{zhou2016dorefa,gysel2016hardware}. 
+%It can be concluded that the scaling factor is an effective way to reduce the quantization loss.
+%We follow the same design strategy in our method.
+
+Given data $w_f$ which follow the normal distribution as $w_f\sim \mathcal{N}(\mu,\sigma^2)$, the process of transforming it into a standard normal distribution is as follows:
+\begin{equation}
+    \label{eqn:snd}
+    \varphi=\frac{w_f-\mu}{\sigma}\sim \mathcal{N}(0,1)
+\end{equation}
+
+Inspired by the scaling factor and transforming of normal distribution, we set our scaling factor $\alpha$ and offset factor $\beta$ as follows:
+\begin{equation}
+    \begin{cases}
+    \alpha=\lambda \sigma\\
+    \beta=\mu
+    \end{cases}
+\end{equation}
+where $\lambda$ is adjustable parameter that scales the data to the range we need to quantize, where:
+\begin{equation}
+\label{eqn:distribution_scale}
+ \frac{w_f-\beta}{\alpha}=\frac{\varphi}{\lambda}\sim \mathcal{N}(0,\frac{1}{\lambda}).   
+\end{equation}
+
+The scaling factor and shifting factor are used to transform the general normal distribution to the standard normal distribution, and then scaling it to the integer range that we could quantize with a given bit width. Binary/ternary has an manually designed scaling factor that is used to scale the binary/ternary value range to reduce quantization loss. For fixed-point quantization, we find the fact that the shift steps can be regard as its scaling factor. It can only be an form of $2^n$ ($n$ is an integer).
+
+In addition, $\lambda$ is the segmentation width. 
+Let the bit width be $k$-bit, so the distribution $\varphi$ in \eqnref{eqn:snd} will be cut into $(2^k+1)$ segments by the quantization location with the interval of segmentation width $\lambda$.
+The data in the $(2^k+1)$ segmentations will be quantized to $2^k$ numbers by the principle of proximity or nearest neighbors (from \figref{fig:before_ulq} to \figref{fig:after_ulq}).
+%\textcolor{red}{(Cong: in Fig. 2, what is the value of $k$ and $\lambda$? Needs to explain.)}
+
+
+%To be general, we propose a full-precision scaling factor $\alpha$ and an offset factor $\beta$ that can quantize any data in normal distribution into integer values. The scaling factor can reduce the quantization loss, while the offset factor can eliminate the impact of the mean shift of the distribution.
+
+%\textcolor{red}{(Cong: Sorry I have a personal question. What is the difference between the scaling factor in Binary/Ternary and the scaling factor in fixed-point quantization? Why the fixed-point scaling factor is a low-precision factor?)}
+%\textcolor{blue}{(Cheng: Our approach is essentially based on the analysis of standard normal distributions. )}
+Comparing with the customized or low-precision scaling factors in binary/ternary and fixed-point quantization, $\mu$L2Q only requires one simple scaling factor and offset factor representations that is directly related to the data loss. 
+%Fortunately, we noticed the calculation from the general normal distribution to the standard normal distribution, including the parameters we needed.
+
+
+%\begin{figure}
+%    \centering
+%    \includegraphics[width=0.8\columnwidth]{fig/out.pdf}
+%    \caption{The quantization locations in a normal %distribution.
+%    Interval of any two nearest locations is $\lambda$. All %data of distribution will be quantized to several numbers ($2^k$) located in quantization locations.
+%    \textcolor{red}{Plot two figures instead of one.}}
+%    \label{fig:segmentation}
+%\end{figure}
+
+$\mu$L2Q can be concluded as the following equation:
+
+\begin{equation}
+    \label{eqn:ulq_method}
+    w_q = Round(\underset{(1-2^{k-1},2^{k-1})}{Clip}(\frac{w_f-\beta}{\alpha} + 0.5))
+\end{equation}
+
+Here $Clip$ is a function to enforce the values outside of the representation range being replaced by their nearest neighbors ($(1-2^{k-1})$ or $(2^{k-1})$).
+%Generally, the minimum and maximum values will always exceed the range that the k-bit width can represent, that is, outside the range of $[1-2^{k-1}, 2^{k-1}]$.
+The offset of 0.5 is to shift the mean of the distribution, which shifts the scaled quantization locations (scaled by $\frac{1}{\lambda}$) to integers. It constrains the quantized value to start from the mean of the distribution as well as reducing the quantization loss.
+%and ensures that an even count of quantized values are taken, since for any given $k$-bit width, there always have $2^k$ values can be represented, and the values count is even.
+%\textcolor{red}{(Cong: why does 0.5 can ensure the number of vaules is even? why need it to be even? Sorry for being stupid...)}
+%\textcolor{blue}{(Cheng: When the data is scaled (by $\frac{1}{\lambda}$), the quantized position nearest to 0 is exactly -0.5 and 0.5, so we make a 0.5 offset just to move the quantized position to the integer. If no shift is done, the quantized value will start from the mean of the distribution, and the quantization loss is not minimal.)}
+
+

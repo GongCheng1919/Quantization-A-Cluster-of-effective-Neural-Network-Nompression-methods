@@ -1,0 +1,14 @@
+\begin{abstract}
+Data quantization has been proved to be an effective method to compress deep neural networks (DNNs) using less bits to represent the co-efficient and/or intermediate data.
+The bitwidth of the data directly affects the memory footprint, computing requirement and energy consumption during the execution of the DNN model.
+Although there have been numerous existing study on data quantization, there is still a lack of quantitative analysis of the impact of the quantization method on the processed data, hence, lead to an empirical guidance and result in a final loss of model accuracy.
+To address this, we propose an effective ultra-low loss quantization method called ($\mu$L2Q). 
+$\mu$L2Q finds the optimal discrete subspace of a contiguous space and minimizes the loss of quantization for a certain set of data. 
+\textcolor{red}{Yao: Leave it here for now, need to enrich after we are clear with the method.}
+% It contains the loss analysis for normal distributed DNN weights. 
+% Firstly, we introduce a fine-grained factor $\lambda$ to divide the continuous space into discrete subspaces. It can easily generate many subspaces, from which we will select the optimal one. Secondly, the linear regression model is used to evaluate the optimal subspace. Finally, we also give the optimal $\lambda$ value at different bit widths.
+%Further, $\mu$L2Q applies two optimizations to achieve ultra-low data quantization loss:
+We finally merge our quantization method into Caffe flow and compared with the state-of-the-art network compression methods.
+The evaluation results show a dominating loss control of $\mu$L2Q on both simulated data and data quantization during DNN model compression.
+The DNN models that are quantized with our proposed method deliver an average X\% higher accuracy when compared to the state-of-the-art solutions with the same compression rate.
+\end{abstract}

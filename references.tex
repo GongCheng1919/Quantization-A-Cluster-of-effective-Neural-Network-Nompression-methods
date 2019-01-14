@@ -1,0 +1,93 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage[utf8]{inputenc}
+\usepackage{natbib}
+\usepackage{booktabs} % For formal tables
+\usepackage{balance}
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{overpic}
+\usepackage{listings}
+%\usepackage[noadjust]{cite}
+%\usepackage{algorithm}
+\usepackage{algpseudocode}
+%\usepackage[ruled,vlined]{algorithm2e}
+%\usepackage{algorithmic}
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{amssymb}
+\usepackage[referable]{threeparttablex}
+\usepackage{booktabs,caption}
+\usepackage{color}
+\usepackage{float}
+%\usepackage[numbers,super]{natbib}
+
+\usepackage{algorithm} %format of the algorithm
+\usepackage{algorithmicx} %format of the algorithm
+\usepackage{xcolor}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+%\usepackage{algpseudocode}
+\usepackage{amsmath}
+%命令
+\newcommand{\figref}[1]{Fig. \ref{#1}}
+\newcommand{\secref}[1]{Sec. \ref{#1}}
+\newcommand{\eqnref}[1]{Eq. \ref{#1}}
+\newcommand{\tabref}[1]{Table. \ref{#1}}
+\newcommand{\algorithmref}[1]{Algorithm. \ref{#1}}
+\newcommand{\sArt}[0]{state-of-the-art}
+\begin{document}
+\begin{table*}[htbp]
+    \centering
+    \begin{tabular}{c|c}
+    \hline
+        Category&Articles\\ \hline
+         \multirow{5}*{Models}& Very deep convolutional networks for large-scale image recognition (VGG)\\
+         & Gradient-based learning applied to document recognition (Lenet5)\\
+         &Deep residual learning for image recognition (ResNet) \\
+         &Imagenet classification with deep convolutional neural networks (caffenet/Alexnet) \\ 
+         & Learning multiple layers of features from tiny images (cifarnet)\\\hline
+         \multirow{6}*{Binary}&Binarized neural networks \\
+         &  Dorefa-net: Training low bitwidth convolutional neural networks with low bitwidth gradients\\
+         & Xnor-net: Imagenet classification using binary convolutional neural networks\\
+         & ReBNet: Residual Binarized Neural Network\\ 
+         &Finn: A framework for fast, scalable binarized neural network inference\\
+         &Performance Guaranteed Network Acceleration via High-Order Residual Quantization\\\hline
+         \multirow{4}*{Ternary}&Ternary weight networks\\
+         & Trained ternary quantization\\
+         &Ternary neural networks for resource-efficient AI applications \\
+         &Sparse ternary connect: Convolutional neural networks using ternarized weights with enhanced sparsity \\ \hline
+         \multirow{4}*{Fixed-point}&Dorefa-net: Training low bitwidth convolutional neural networks with low bitwidth gradients\\
+         & Hardware-oriented approximation of convolutional neural networks\\
+         & Fixed point quantization of deep convolutional networks\\
+         & \\ \hline
+         \multirow{4}*{Compression}&Deep compression: Compressing deep neural networks with pruning, trained quantization and huffman coding\\
+         & Compressing deep convolutional networks using vector quantization\\
+         & Quantized neural networks: Training neural networks with low precision weights and activations\\
+         & \\ \hline
+         \multirow{4}*{Assumption Support}&Going deeper with embedded fpga platform for convolutional neural network\\
+         &Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift\\
+         &Ternary weight networks \\
+         & \\ \hline
+         
+    \end{tabular}
+    \caption{\textbf{Assumption Support} is the assumption of normal distribution of features and weights of models.}
+    \label{tab:my_label}
+\end{table*}
+Let $X$ be the input feature, $y$ be the classification result of the deep neural network, and $\omega$ be the weights of the model. According to the Bayesian posterior probability\citep{nasrabadi2007pattern,robert2014machine}, the following formula can be obtained:
+\begin{equation}
+    p(y|X)=p(y|X,\omega)p(\omega)
+\end{equation}
+Assume $p(\omega_i) = \mathcal{N}(\omega_i|\mu,\sigma^2)$,
+the maximum log likelihood of the above formula can be written:
+\begin{equation}
+    l(\omega)=\log(p(y|X,\omega))-\lambda\sum(\omega_i)^2,\,(\mu=0,\sigma=\sqrt{\frac{1}{\lambda}})
+\end{equation}
+Here $\lambda\sum(\omega_i)^2$ is the L2 regularization term.
+
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}

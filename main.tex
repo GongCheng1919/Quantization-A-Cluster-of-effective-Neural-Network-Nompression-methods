@@ -1,0 +1,69 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage[utf8]{inputenc}
+\usepackage{natbib}
+\usepackage{booktabs} % For formal tables
+\usepackage{balance}
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{overpic}
+\usepackage{listings}
+%\usepackage[noadjust]{cite}
+%\usepackage{algorithm}
+\usepackage{algpseudocode}
+%\usepackage[ruled,vlined]{algorithm2e}
+%\usepackage{algorithmic}
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{amssymb}
+\usepackage[referable]{threeparttablex}
+%\usepackage{booktabs,caption}
+\usepackage{color}
+\usepackage{float}
+
+\usepackage{algorithm} %format of the algorithm
+\usepackage{algorithmicx} %format of the algorithm
+\usepackage{xcolor}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\usepackage{amsmath}
+%命令
+\newcommand{\figref}[1]{Fig. \ref{#1}}
+\newcommand{\secref}[1]{Sec. \ref{#1}}
+\newcommand{\eqnref}[1]{Eq. \ref{#1}}
+\newcommand{\tabref}[1]{Table. \ref{#1}}
+\newcommand{\algorithmref}[1]{Alg. \ref{#1}}
+\newcommand{\sArt}[0]{state-of-the-art}
+
+\begin{document}
+
+\title{Quantization: A Cluster of effective Neural Network Nompression methods}
+%TODO: Please make sure if this submission is double-blined review, if so, ommit all the authors and affilications.
+%\author{Cheng Gong, Tao Li, Ye Lu, Xiaofan Zhang, Cong Hao, Yao Chen}
+\author{\IEEEauthorblockN{Cheng Gong}
+\IEEEauthorblockA{\textit{Nankai University},
+Tianjin, China \\ 
+cheng-gong@mail.nankai.edu.cn}
+}
+\maketitle
+
+\input{00-Abstract.tex}
+
+\input{01-Introduction.tex}
+\input{02-Relateworks.tex}
+\input{03-ULQ.tex}
+\input{04-Implementation.tex}
+\input{05-Experiments.tex}
+\input{06-Conclusion.tex}
+
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+%\appendix
+%\input{07-appendix.tex}
+
+\end{document}
